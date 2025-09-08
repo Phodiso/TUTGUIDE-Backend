@@ -12,43 +12,115 @@ export const registerUserService = (fullName, email, password, role, callback) =
         return callback({ error: 'All fields are required' });
     }
 
-    //validate email format
+    // Validate email format
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return callback({ error: "Invalid email format" });
     }
 
-
-    //test if the user exists
-    pool.query("SELECT * FROM users WHERE email = ?", 
-        [email], 
-        (error, results) => {
+    // Check if the user already exists
+    pool.query("SELECT * FROM users WHERE email = ?", [email], (error, results) => {
         if (error) {
             console.error("DB error:", error.message);
             return callback({ error: "Database error" });
         }
 
+        // User exists
         if (results.length > 0) {
-            return callback({ error: "User already exists, please login" });
-        }
+            const existingUser = results[0];
 
-        //generate verification code
-        const code = Math.floor(1000 + Math.random() * 9000);
-        verificationCodes[email] = code;
+            // If they are trying to register as admin
+            if (role === 'admin') {
+                // Check if email is a preloaded admin
+                pool.query(
+                    "SELECT * FROM preloadedAdmins WHERE pre_admin_email = ?",
+                    [email],
+                    (err, adminResults) => {
+                        if (err) {
+                            console.error("DB error:", err.message);
+                            return callback({ error: "Database error" });
+                        }
 
-        //store user to pending users
-        pendingUsers[email] = { fullName, email, password, role: role || 'user' };
+                        if (adminResults.length === 0) {
+                            // Not a preloaded admin → cannot upgrade
+                            return callback({ error: "You are not authorized to register as admin" });
+                        }
 
-        sendVerificationEmail(email, code, (error) => {
-            if(error){
-                return callback({ error: "Failed to send email", details: error.message});
+                        // Preloaded admin → allow role upgrade
+                        if (existingUser.role === 'admin') {
+                            return callback({ message: "You are already registered as admin" });
+                        }
+
+                        pool.query(
+                            "UPDATE users SET role = 'admin' WHERE email = ?",
+                            [email],
+                            (updateErr) => {
+                                if (updateErr) {
+                                    console.error("Failed to upgrade role:", updateErr.message);
+                                    return callback({ error: "Failed to upgrade to admin" });
+                                }
+
+                                return callback(null, { 
+                                    message: "Your role has been upgraded to admin",
+                                    email: existingUser.email,
+                                    fullName: existingUser.fullName,
+                                    role: 'admin'
+                                });
+                            }
+                        );
+                    }
+                );
+            } else {
+                // Trying to register as normal user → block
+                return callback({ error: "User already exists, please login" });
             }
 
-            console.log(`Verification code for ${email}: ${code}`);
-            callback(null, { message: 'Verification code sent to your email' });
-        });
+            return; // Important: stop further processing
+        }
 
+        // User does not exist → normal registration flow
+
+        // If role is 'admin', ensure email is in preloadedAdmins
+        if (role === 'admin') {
+            pool.query(
+                "SELECT * FROM preloadedAdmins WHERE pre_admin_email = ?",
+                [email],
+                (err, adminResults) => {
+                    if (err) {
+                        console.error("DB error:", err.message);
+                        return callback({ error: "Database error" });
+                    }
+
+                    if (adminResults.length === 0) {
+                        return callback({ error: "You are not authorized to register as admin" });
+                    }
+
+                    // Email is authorized → proceed
+                    sendVerification();
+                }
+            );
+        } else {
+            // Role is 'user' → proceed normally
+            sendVerification();
+        }
+
+        // Helper function to send verification code
+        function sendVerification() {
+            const code = Math.floor(1000 + Math.random() * 9000);
+            verificationCodes[email] = code;
+            pendingUsers[email] = { fullName, email, password, role: role || 'user' };
+
+            sendVerificationEmail(email, code, (error) => {
+                if (error) {
+                    return callback({ error: "Failed to send email", details: error.message });
+                }
+                console.log(`Verification code for ${email}: ${code}`);
+                callback(null, { message: 'Verification code sent to your email' });
+            });
+        }
     });
 };
+
+
 
 export const verifyUserService = (email, code, callback) => {
     if (!email || !code){
@@ -105,6 +177,7 @@ export const loginUserService = (email, password, callback) => {
         return callback({ error: 'Email and password are required' });
     }
 
+    //check if user exists
     pool.query(
         "SELECT * FROM users WHERE email = ?",
         [email],

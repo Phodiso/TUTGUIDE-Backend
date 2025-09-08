@@ -2,6 +2,7 @@
 import pool from '../config/dbConfig.js';
 
 export async function createTables() {
+  // Create users table
   pool.query(
     `CREATE TABLE IF NOT EXISTS users (
       fullName VARCHAR(100),
@@ -18,6 +19,7 @@ export async function createTables() {
     }
   );
 
+  // Create feedback table
   pool.query(
     `CREATE TABLE IF NOT EXISTS feedback (
       feedback_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -28,8 +30,47 @@ export async function createTables() {
       FOREIGN KEY (email) REFERENCES users(email) ON UPDATE CASCADE ON DELETE CASCADE
     )`,
     (error) => {
-      if (error) console.log("Failed to create posts table.", error.message);
-      else console.log("Posts table created.");
+      if (error) console.log("Failed to create feedback table.", error.message);
+      else console.log("Feedback table created.");
+    }
+  );
+
+  // Create preloadedAdmins table and insert default admins
+  pool.query(
+    `CREATE TABLE IF NOT EXISTS preloadedAdmins (
+      pre_admin_id INT AUTO_INCREMENT PRIMARY KEY,
+      pre_admin_email VARCHAR(200) NOT NULL UNIQUE,
+      isRegistered BOOLEAN DEFAULT false      
+    )`,
+    (error) => {
+      if (error) console.log("Failed to create preloadedAdmins table.", error.message);
+      else {
+        console.log("PreloadedAdmins table created.");
+
+        // Preload admins
+        const defaultAdmins = [
+          "inocentsipho@gmail.com",
+          "chantellemmathabo4@gmail.com",
+          "molebogengramushu48@gmail.com",
+          "admin4@example.com",
+          "admin5@example.com",
+          "admin6@example.com"
+        ];
+
+        defaultAdmins.forEach((email) => {
+          pool.query(
+            "INSERT IGNORE INTO preloadedAdmins (pre_admin_email) VALUES (?)",
+            [email],
+            (error) => {
+              if(error){
+                console.error(`Failed to insert ${email}:`, error.message);
+              } else {
+                console.log(`Preloaded admin inserted: ${email}`);
+              }
+            }
+          );
+        });
+      }
     }
   );
 }
