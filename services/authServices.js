@@ -156,6 +156,20 @@ export const verifyUserService = (email, code, callback) => {
                 return callback({ error: "Failed to register user" });
             }
 
+            if (user.role === 'admin') {
+                pool.query(
+                    "UPDATE preloadedAdmins SET isRegistered = true WHERE pre_admin_email = ?",
+                    [email],
+                    (err) => {
+                        if (err) {
+                            console.error("Failed to mark preloaded admin as registered:", err.message);
+                        } else {
+                            console.log(`Preloaded admin ${email} marked as registered`);
+                        }
+                    }
+                );
+            }
+
             delete verificationCodes[email];
             delete pendingUsers[email];        
 

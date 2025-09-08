@@ -1,6 +1,7 @@
 import express from 'express';
 import bodyParser from "body-parser";
 import authRouter from './routes/authRoutes.js';
+import userRouter from './routes/userRoutes.js';
 import { createTables } from './tables/createTables.js'
 
 
@@ -15,6 +16,7 @@ createTables();
 
 //routes
 app.use('/api/auth', authRouter);
+app.use('/api/', userRouter);
 
 app.listen((port), () => {
     console.log(`server running on port ${port}`);
