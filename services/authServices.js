@@ -28,7 +28,7 @@ export const registerUserService = (fullName, email, password, role, callback) =
         }
 
         if (results.length > 0) {
-            return callback({ error: "User already exists" });
+            return callback({ error: "User already exists, please login" });
         }
 
         //generate verification code
@@ -89,7 +89,9 @@ export const verifyUserService = (email, code, callback) => {
 
             callback(null, {
                 message: "User verified and registered successfully",
-                user/*: { email: user.email, name: user.name, surname: user.surname, role: user.role }*/
+                fullName: user.fullName,
+                email: user.email,
+                role: user.role
             });
             
         });
@@ -143,9 +145,7 @@ export const loginUserService = (email, password, callback) => {
             callback(null,{
                 message: "User login successful",
                 email: user.email,
-                role: user.role,
-                token,
-                refreshToken
+                role: user.role
             });
         });
 
