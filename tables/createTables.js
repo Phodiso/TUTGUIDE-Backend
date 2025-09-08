@@ -52,9 +52,9 @@ export async function createTables() {
           "inocentsipho@gmail.com",
           "chantellemmathabo4@gmail.com",
           "molebogengramushu48@gmail.com",
-          "admin4@example.com",
-          "admin5@example.com",
-          "admin6@example.com"
+          "byronmathole@gmail.com",
+          "yamkelazele@gmail.com",
+          "lindelwanonjabulo00@gmail.com"
         ];
 
         defaultAdmins.forEach((email) => {
