@@ -1,14 +1,21 @@
 import express from 'express';
-import { updateProfilePicController, updateUserController, deleteUserController } from '../controllers/userController.js';
+import { 
+    updateProfilePicController, 
+    updateUserController, 
+    deleteUserController 
+} from '../controllers/userController.js';
 import { upload } from '../services/userService.js';
+import { authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-// PUT - Update user (with profile pic upload support)
-router.put('/update/profilePic', upload.single('profilePic'), updateProfilePicController);
-router.put('/update', upload.single('profilePic'), updateUserController);
+// PUT - Update profile picture (requires file upload)
+router.put('/update/profilePic', authorize(), upload.single('profilePic'), updateProfilePicController);
 
-// DELETE - Delete user
-router.delete('/delete', deleteUserController);
+// PUT - Update other user details (email, fullName, password)
+router.put('/update', authorize(), updateUserController);
+
+// DELETE - Delete logged-in user
+router.delete('/delete', authorize(), deleteUserController);
 
 export default router;
