@@ -55,7 +55,7 @@ export const updateUserService = (oldEmail,newEmail, fullName, password, profile
 
 export const deleteUserService = (email, callback) => {
     if(!email){
-        return callBbck({ error: "Email is required" });
+        return callback({ error: "Email is required" });
     }
 
     pool.query(
